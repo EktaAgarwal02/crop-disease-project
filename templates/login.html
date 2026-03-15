@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Login | AgriScan AI{% endblock %}
+
+{% block extra_styles %}
+<style>
+body {
+    background: url("https://images.unsplash.com/photo-1500937386664-56d1dfef3854") no-repeat center center/cover;
+    margin: 0;
+    position: relative;
+}
+
+.login-wrapper {
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+body::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(3px);
+    z-index: -1;
+}
+
+.container {
+    width: 1200px;
+    height: 550px;
+    display: flex;
+    background: rgba(255,255,255,0.95);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    animation: fadeIn 1s ease;
+}
+
+@keyframes fadeIn {
+    from{opacity:0; transform:translateY(-20px);}
+    to{opacity:1; transform:translateY(0);}
+}
+
+/* Left Form Section */
+.form-section{
+    width:50%;
+    padding:60px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    animation:slideLeft 1.2s ease;
+}
+
+@keyframes slideLeft{
+    from{opacity:0; transform:translateX(-40px);}
+    to{opacity:1; transform:translateX(0);}
+}
+
+.form-section h2{
+    margin-bottom:30px;
+    color:#006400;
+}
+
+.input-group{
+    margin-bottom:20px;
+    position:relative;
+}
+
+.input-group input{
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #ccc;
+    outline:none;
+    transition:0.3s;
+}
+
+.input-group input:focus{
+    border-color:#28a745;
+    box-shadow:0 0 8px #28a745;
+}
+
+.password-toggle{
+    position:absolute;
+    right:15px;
+    top:50%;
+    transform:translateY(-50%);
+    cursor:pointer;
+    color:#666;
+}
+
+.btn-login{
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(45deg,#28a745,#0077b6);
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+    animation:pulse 2s infinite;
+}
+
+.btn-login:hover{
+    transform:translateY(-3px);
+    box-shadow:0 10px 20px rgba(0,0,0,0.2);
+}
+
+@keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(40,167,69,0.6);}
+    70%{box-shadow:0 0 0 12px rgba(40,167,69,0);}
+    100%{box-shadow:0 0 0 0 rgba(40,167,69,0);}
+}
+
+/* Right Image Section */
+.image-section{
+    width:50%;
+    background:linear-gradient(135deg,#28a745,#0077b6);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    position:relative;
+    overflow:hidden;
+}
+
+.image-section::before{
+    content:"";
+    position:absolute;
+    width:200px;
+    height:200px;
+    background:rgba(255,255,255,0.2);
+    border-radius:50%;
+    top:20%;
+    left:20%;
+    animation:moveLight 6s infinite alternate ease-in-out;
+}
+
+@keyframes moveLight{
+    from{transform:translate(0,0);}
+    to{transform:translate(60px,40px);}
+}
+
+.image-section img{
+    width:80%;
+    animation:float 4s ease-in-out infinite,
+            zoomIn 6s ease-in-out infinite;
+    filter:drop-shadow(0 0 20px rgba(255,255,255,0.4));
+}
+
+@keyframes float{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-15px);}
+}
+
+@keyframes zoomIn{
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.05);}
+}
+
+/* Responsive */
+@media(max-width:900px){
+    .container{
+        flex-direction:column;
+        width:95%;
+        height:auto;
+    }
+    .form-section, .image-section{
+        width:100%;
+    }
+    .image-section{
+        padding:30px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+<div class="container">
+
+    <div class="form-section">
+        <h2>Login to Crop System 🌿</h2>
+
+        <form method="POST" action="{{ url_for('login') }}">
+
+            <div class="input-group">
+                <input type="email" name="email" placeholder="Email Address" required>
+            </div>
+
+            <div class="input-group">
+                <input type="password" id="password" name="password" placeholder="Password" required>
+                <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+            </div>
+
+            <button type="submit" class="btn-login">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+
+            <p style="margin-top:15px; color:black;">
+                Don't have an account? <a href="{{ url_for('register') }}">Register</a>
+            </p>
+
+        </form>
+    </div>
+
+    <div class="image-section">
+        <img src="https://onlinegiftools.com/images/gif/illustrations/crop-gif.png" alt="Crop Illustration">
+    </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById("togglePassword").addEventListener("click", function(){
+    let input = document.getElementById("password");
+    if(input.type === "password"){
+        input.type = "text";
+        this.classList.remove("fa-eye");
+        this.classList.add("fa-eye-slash");
+    } else {
+        input.type = "password";
+        this.classList.remove("fa-eye-slash");
+        this.classList.add("fa-eye");
+    }
+});
+</script>
+{% endblock %}

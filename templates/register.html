@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Crop Disease Classification{% endblock %}
+
+{% block extra_styles %}
+<style>
+body{
+    background:#f4fff8;
+    font-family:'Segoe UI',sans-serif;
+}
+
+/* Adjust nav to relative positioning and remove content padding */
+nav {
+    position: relative;
+    background: rgba(15,23,42,0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.content-wrapper {
+    padding-top: 0;
+}
+
+/* Layout */
+.register-container{
+    min-height:100vh;
+}
+.row.no-gutters{
+    min-height:100vh;
+}
+
+/* Left Image Section */
+.image-section{
+    background:linear-gradient(rgba(0,80,0,0.7),rgba(0,120,150,0.7)),
+            url("https://images.unsplash.com/photo-1501004318641-b39e6451bec6") center/cover no-repeat;
+    height: 100%;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    text-align:center;
+    padding:40px;
+    position:relative;
+    overflow:hidden;
+}
+
+/* Floating animation */
+.floating-icon{
+    animation:float 4s ease-in-out infinite;
+}
+
+@keyframes float{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-15px);}
+}
+
+/* Form Section */
+.form-section{
+    background:white;
+    height:100%;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+}
+
+.form-container{
+    width:70%;
+    max-width:450px;
+}
+
+.form-control{
+    border-radius:10px;
+    padding:12px;
+}
+
+.form-control:focus{
+    border-color:#28a745;
+    box-shadow:0 0 0 0.2rem rgba(40,167,69,0.25);
+}
+
+.btn-register{
+    background:linear-gradient(45deg,#28a745,#0077b6);
+    border:none;
+    border-radius:10px;
+    padding:12px;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+.btn-register:hover{
+    transform:translateY(-2px);
+    box-shadow:0 8px 20px rgba(0,0,0,0.2);
+}
+
+/* Password toggle */
+.password-toggle{
+    position:absolute;
+    right:15px;
+    top:50%;
+    transform:translateY(-50%);
+    cursor:pointer;
+}
+
+/* Strength bar */
+.password-strength{
+    height:5px;
+    border-radius:5px;
+    margin-top:5px;
+}
+.strength-weak{background:red;}
+.strength-medium{background:orange;}
+.strength-strong{background:green;}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+<div class="row no-gutters">
+
+<!-- Left Side -->
+<div class="col-lg-6">
+    <div class="image-section">
+        <div>
+            <i class="fas fa-seedling fa-5x text-warning floating-icon mb-4"></i>
+            <h2>Detect Crop Diseases Instantly</h2>
+            <p class="lead">AI-powered CNN based plant disease detection system</p>
+            <ul class="list-unstyled mt-4">
+                <li>✔ Deep Learning Model</li>
+                <li>✔ Real-time Image Analysis</li>
+                <li>✔ Fast & Accurate Results</li>
+                <li>✔ Farmer Friendly Interface</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Right Side -->
+<div class="col-lg-6">
+<div class="form-section">
+<div class="form-container">
+
+<h3 class="text-center mb-4" style="color: black;">Create Account 🌿</h3>
+
+<form method="POST" action="{{ url_for('register') }}">
+
+<div class="form-group">
+<input type="text" class="form-control" name="name" placeholder="Full Name" required>
+</div>
+
+<div class="form-group">
+<input type="email" class="form-control" name="email" placeholder="Email Address" required>
+</div>
+
+<div class="form-group position-relative">
+<input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+<i class="fas fa-eye password-toggle" id="togglePassword"></i>
+<div class="password-strength" id="strengthBar"></div>
+</div>
+
+<div class="form-group position-relative">
+<input type="password" class="form-control" name="confirm_password" placeholder="Confirm Password" required>
+</div>
+
+<button type="submit" class="btn btn-register btn-block text-white">
+<i class="fas fa-user-plus mr-2"></i>Register
+</button>
+
+<p class="text-center mt-3" style="color: black;">
+Already have account? <a href="{{ url_for('login') }}">Login</a>
+</p>
+
+</form>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+// Password toggle
+$("#togglePassword").click(function(){
+    let input=$("#password");
+    if(input.attr("type")==="password"){
+        input.attr("type","text");
+        $(this).removeClass("fa-eye").addClass("fa-eye-slash");
+    }else{
+        input.attr("type","password");
+        $(this).removeClass("fa-eye-slash").addClass("fa-eye");
+    }
+});
+
+// Password strength
+$("#password").on("input",function(){
+    let val=$(this).val();
+    let strength=$("#strengthBar");
+    strength.removeClass("strength-weak strength-medium strength-strong");
+
+    if(val.length<6){
+        strength.addClass("strength-weak");
+    }else if(val.match(/[A-Z]/) && val.match(/[0-9]/)){
+        strength.addClass("strength-strong");
+    }else{
+        strength.addClass("strength-medium");
+    }
+});
+</script>
+{% endblock %}
