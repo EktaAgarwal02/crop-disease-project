@@ -9,7 +9,6 @@ body{
     font-family:'Segoe UI',sans-serif;
 }
 
-/* Adjust nav to relative positioning and remove content padding */
 nav {
     position: relative;
     background: rgba(15,23,42,0.8);
@@ -20,7 +19,6 @@ nav {
     padding-top: 0;
 }
 
-/* Layout */
 .register-container{
     min-height:100vh;
 }
@@ -28,7 +26,6 @@ nav {
     min-height:100vh;
 }
 
-/* Left Image Section */
 .image-section{
     background:linear-gradient(rgba(0,80,0,0.7),rgba(0,120,150,0.7)),
             url("https://images.unsplash.com/photo-1501004318641-b39e6451bec6") center/cover no-repeat;
@@ -44,7 +41,6 @@ nav {
     overflow:hidden;
 }
 
-/* Floating animation */
 .floating-icon{
     animation:float 4s ease-in-out infinite;
 }
@@ -54,7 +50,6 @@ nav {
     50%{transform:translateY(-15px);}
 }
 
-/* Form Section */
 .form-section{
     background:white;
     height:100%;
@@ -94,7 +89,6 @@ nav {
     box-shadow:0 8px 20px rgba(0,0,0,0.2);
 }
 
-/* Password toggle */
 .password-toggle{
     position:absolute;
     right:15px;
@@ -103,7 +97,6 @@ nav {
     cursor:pointer;
 }
 
-/* Strength bar */
 .password-strength{
     height:5px;
     border-radius:5px;
@@ -112,6 +105,33 @@ nav {
 .strength-weak{background:red;}
 .strength-medium{background:orange;}
 .strength-strong{background:green;}
+
+/* 🔥 FLASH MESSAGE STYLE */
+.alert-box {
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.alert-box.error {
+    background: #ffe6e6;
+    color: #cc0000;
+    border-left: 5px solid red;
+}
+
+.alert-box.success {
+    background: #e6ffe6;
+    color: #006600;
+    border-left: 5px solid green;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(-5px);}
+    to {opacity: 1; transform: translateY(0);}
+}
 </style>
 {% endblock %}
 
@@ -144,10 +164,21 @@ nav {
 
 <h3 class="text-center mb-4" style="color: black;">Create Account 🌿</h3>
 
+<!-- 🔥 FLASH MESSAGE DISPLAY -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert-box {{ category }}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
 <form method="POST" action="{{ url_for('register') }}">
 
 <div class="form-group">
-<input type="text" class="form-control" name="name" placeholder="Full Name" required>
+<input type="text" class="form-control" name="name" placeholder="Full Name" required minlength="2">
 </div>
 
 <div class="form-group">
@@ -155,7 +186,7 @@ nav {
 </div>
 
 <div class="form-group position-relative">
-<input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+<input type="password" class="form-control" id="password" name="password" placeholder="Password" required minlength="8">
 <i class="fas fa-eye password-toggle" id="togglePassword"></i>
 <div class="password-strength" id="strengthBar"></div>
 </div>

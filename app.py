@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 
+
 app = Flask(__name__)
 app.secret_key = 'secretkey'
 
@@ -54,58 +55,48 @@ def valid_password(password):
 def register():
 
     if request.method == 'POST':
-
-        name = request.form['name'].strip()
-        email = request.form['email'].strip()
+        name = request.form['name']
+        email = request.form['email']
         password = request.form['password']
         confirm_password = request.form['confirm_password']
 
-        # Username validation
-        if len(name) < 2:
-            flash("Username must be at least 2 characters long","error")
+        # validations 
+        if not name or len(name.strip())<2:
+            flash('Name must be at least 2 characters long.', 'error')
             return redirect(url_for('register'))
 
-        # Email validation
-        if '@' not in email:
-            flash("Invalid email address","error")
+        if not re.match(r'^[\w\.-]+@gmail\.com$', email):
+            flash('Enter valid Gmail (example@gmail.com)', 'error')
             return redirect(url_for('register'))
-
-        # Password validation
+        
         if not valid_password(password):
-            flash("Password must contain Uppercase, Lowercase, Number, Special Character and No Spaces","error")
+            flash('Password must contain uppercase, lowercase, number and special character', 'error')
             return redirect(url_for('register'))
-
-        # Password match
         if password != confirm_password:
-            flash("Passwords do not match","error")
+            flash('Passwords do not match', 'error')
             return redirect(url_for('register'))
-
-        # Check existing user
+        
+        #check if user already exists
         existing_user = User.query.filter_by(email=email).first()
-
         if existing_user:
-            flash("Email already registered","error")
+            flash('Email already registered.Please log in.', 'error')
             return redirect(url_for('register'))
 
-        # Create new user
+        # create new user
         hashed_password = generate_password_hash(password)
-
-        new_user = User(
-            name=name,
-            email=email,
-            password=hashed_password
+        new_user = User(name=name.strip(), 
+                        email=email.strip(),
+                        password=hashed_password
         )
-
-        try:
+        try: 
             db.session.add(new_user)
             db.session.commit()
-
-            flash("Registration successful! Please login","success")
+            flash('Registration successful! Please log in.', 'success')
+            # after sign-up send user to login page
             return redirect(url_for('login'))
-
-        except:
+        except Exception as e:
             db.session.rollback()
-            flash("Registration failed","error")
+            flash('An error occurred during registration. Please try again.', 'error')
             return redirect(url_for('register'))
 
     return render_template('register.html')
@@ -117,6 +108,7 @@ def register():
 def login():
 
     if request.method == 'POST':
+
 
         email = request.form['email'].strip()
         password = request.form['password']
