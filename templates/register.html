@@ -102,9 +102,57 @@ nav {
     border-radius:5px;
     margin-top:5px;
 }
-.strength-weak{background:red;}
-.strength-medium{background:orange;}
-.strength-strong{background:green;}
+.strength-weak{background:#ff4d4d;}
+.strength-medium{background:#ffc107;}
+.strength-strong{background:#28a745;}
+
+.password-requirements{
+    font-size:0.85rem;
+    margin-top:10px;
+    padding:10px;
+    background:#f8f9fa;
+    border-radius:5px;
+    display:none;
+}
+
+.password-requirements.show{
+    display:block;
+}
+
+.requirement{
+    color:#666;
+    margin:5px 0;
+    display:flex;
+    align-items:center;
+}
+
+.requirement i{
+    margin-right:8px;
+    width:16px;
+    text-align:center;
+}
+
+.requirement.met{
+    color:#28a745;
+}
+
+.requirement.unmet{
+    color:#cc0000;
+}
+
+.input-valid .form-control{
+    border-color:#28a745 !important;
+    background-color:#f0fff4;
+}
+
+.input-invalid .form-control{
+    border-color:#cc0000 !important;
+    background-color:#fff5f5;
+}
+
+.input-neutral .form-control{
+    border-color:#ddd;
+}
 
 /* 🔥 FLASH MESSAGE STYLE */
 .alert-box {
@@ -177,18 +225,33 @@ nav {
 
 <form method="POST" action="{{ url_for('register') }}">
 
-<div class="form-group">
-<input type="text" class="form-control" name="name" placeholder="Full Name" required minlength="2">
+<!-- NAME FIELD -->
+<div class="form-group input-neutral" id="nameGroup">
+<input type="text" class="form-control" id="name" name="name" placeholder="Full Name" required minlength="2">
+<div class="password-requirements" id="nameReq">
+  <div class="requirement unmet" id="req-name-length"><i class="fas fa-times"></i> At least 2 characters</div>
+</div>
 </div>
 
-<div class="form-group">
-<input type="email" class="form-control" name="email" placeholder="Email Address" required>
+<!-- EMAIL FIELD -->
+<div class="form-group input-neutral" id="emailGroup">
+<input type="email" class="form-control" id="email" name="email" placeholder="Email Address (Gmail only)" required>
+<div class="password-requirements" id="emailReq">
+  <div class="requirement unmet" id="req-email-format"><i class="fas fa-times"></i> Valid Gmail address (example@gmail.com)</div>
+</div>
 </div>
 
-<div class="form-group position-relative">
+<div class="form-group position-relative input-neutral" id="passwordGroup">
 <input type="password" class="form-control" id="password" name="password" placeholder="Password" required minlength="8">
 <i class="fas fa-eye password-toggle" id="togglePassword"></i>
 <div class="password-strength" id="strengthBar"></div>
+<div class="password-requirements" id="passwordReq">
+  <div class="requirement unmet" id="req-length"><i class="fas fa-times"></i> At least 8 characters</div>
+  <div class="requirement unmet" id="req-upper"><i class="fas fa-times"></i> Uppercase letter (A-Z)</div>
+  <div class="requirement unmet" id="req-lower"><i class="fas fa-times"></i> Lowercase letter (a-z)</div>
+  <div class="requirement unmet" id="req-number"><i class="fas fa-times"></i> Number (0-9)</div>
+  <div class="requirement unmet" id="req-special"><i class="fas fa-times"></i> Special character (@#$%^&*!)</div>
+</div>
 </div>
 
 <div class="form-group position-relative">
@@ -216,7 +279,56 @@ Already have account? <a href="{{ url_for('login') }}">Login</a>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
-// Password toggle
+// ===== NAME VALIDATION =====
+$("#name").on("input",function(){
+    let val=$(this).val().trim();
+    let group=$("#nameGroup");
+    let req=$("#nameReq");
+    
+    if(val.length > 0){
+        req.addClass("show");
+    } else {
+        req.removeClass("show");
+    }
+    
+    let hasLength=val.length >= 2;
+    updateRequirement("req-name-length", hasLength);
+    
+    if(hasLength){
+        group.removeClass("input-neutral input-invalid").addClass("input-valid");
+    } else if(val.length > 0){
+        group.removeClass("input-neutral input-valid").addClass("input-invalid");
+    } else {
+        group.removeClass("input-valid input-invalid").addClass("input-neutral");
+    }
+});
+
+// ===== EMAIL VALIDATION =====
+$("#email").on("input",function(){
+    let val=$(this).val().trim();
+    let group=$("#emailGroup");
+    let req=$("#emailReq");
+    
+    if(val.length > 0){
+        req.addClass("show");
+    } else {
+        req.removeClass("show");
+    }
+    
+    // Check Gmail format
+    let isValidGmail=/^[\w\.-]+@gmail\.com$/.test(val);
+    updateRequirement("req-email-format", isValidGmail);
+    
+    if(isValidGmail){
+        group.removeClass("input-neutral input-invalid").addClass("input-valid");
+    } else if(val.length > 0){
+        group.removeClass("input-neutral input-valid").addClass("input-invalid");
+    } else {
+        group.removeClass("input-valid input-invalid").addClass("input-neutral");
+    }
+});
+
+// ===== PASSWORD TOGGLE =====
 $("#togglePassword").click(function(){
     let input=$("#password");
     if(input.attr("type")==="password"){
@@ -228,19 +340,72 @@ $("#togglePassword").click(function(){
     }
 });
 
-// Password strength
+// ===== PASSWORD STRENGTH WITH VALIDATION =====
 $("#password").on("input",function(){
     let val=$(this).val();
     let strength=$("#strengthBar");
+    let req=$("#passwordReq");
+    let pwdGroup=$("#passwordGroup");
+    
+    // Show requirements
+    if(val.length > 0){
+        req.addClass("show");
+    } else {
+        req.removeClass("show");
+    }
+    
+    // Check requirements
+    let hasLength=val.length>=8;
+    let hasUpper=/[A-Z]/.test(val);
+    let hasLower=/[a-z]/.test(val);
+    let hasNumber=/[0-9]/.test(val);
+    let hasSpecial=/[@#$%^&*!]/.test(val);
+    
+    // Update requirement indicators
+    updateRequirement("req-length", hasLength);
+    updateRequirement("req-upper", hasUpper);
+    updateRequirement("req-lower", hasLower);
+    updateRequirement("req-number", hasNumber);
+    updateRequirement("req-special", hasSpecial);
+    
+    // Count met requirements
+    let metCount=[hasLength, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+    let allMet=metCount===5;
+    
+    // Update strength bar
     strength.removeClass("strength-weak strength-medium strength-strong");
-
-    if(val.length<6){
+    if(metCount<=2){
         strength.addClass("strength-weak");
-    }else if(val.match(/[A-Z]/) && val.match(/[0-9]/)){
-        strength.addClass("strength-strong");
-    }else{
+    } else if(metCount<=4){
         strength.addClass("strength-medium");
+    } else {
+        strength.addClass("strength-strong");
+    }
+    
+    // Update input field styling
+    if(pwdGroup){
+        if(allMet){
+            pwdGroup.removeClass("input-neutral input-invalid").addClass("input-valid");
+        } else if(val.length > 0){
+            pwdGroup.removeClass("input-neutral input-valid").addClass("input-invalid");
+        } else {
+            pwdGroup.removeClass("input-valid input-invalid").addClass("input-neutral");
+        }
     }
 });
+
+// Helper function to update requirement display
+function updateRequirement(id, isMet){
+    let elem=$("#"+id);
+    let icon=elem.find("i");
+    
+    if(isMet){
+        elem.addClass("met").removeClass("unmet");
+        icon.removeClass("fa-times").addClass("fa-check");
+    } else {
+        elem.addClass("unmet").removeClass("met");
+        icon.removeClass("fa-check").addClass("fa-times");
+    }
+}
 </script>
 {% endblock %}

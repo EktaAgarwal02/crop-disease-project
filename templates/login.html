@@ -95,6 +95,64 @@ body::before {
     color:#666;
 }
 
+.input-valid input{
+    border-color:#28a745 !important;
+    background-color:#f0fff4;
+}
+
+.input-invalid input{
+    border-color:#cc0000 !important;
+    background-color:#fff5f5;
+}
+
+.input-neutral input{
+    border-color:#ccc;
+}
+
+.validation-message{
+    font-size:0.85rem;
+    margin-top:5px;
+    display:none;
+}
+
+.validation-message.error{
+    color:#cc0000;
+}
+
+.validation-message.success{
+    color:#28a745;
+}
+
+.validation-message.show{
+    display:block;
+}
+
+.alert-box{
+    padding:12px;
+    margin-bottom:15px;
+    border-radius:8px;
+    font-weight:500;
+    text-align:center;
+    animation:fadeIn 0.5s ease-in-out;
+}
+
+.alert-box.error{
+    background:#ffe6e6;
+    color:#cc0000;
+    border-left:5px solid red;
+}
+
+.alert-box.success{
+    background:#e6ffe6;
+    color:#006600;
+    border-left:5px solid green;
+}
+
+@keyframes fadeIn{
+    from{opacity:0; transform:translateY(-5px);}
+    to{opacity:1; transform:translateY(0);}
+}
+
 .btn-login{
     padding:12px;
     border:none;
@@ -187,15 +245,30 @@ body::before {
     <div class="form-section">
         <h2>Login to Crop System 🌿</h2>
 
+        <!-- FLASH MESSAGE DISPLAY -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert-box {{ category }}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
         <form method="POST" action="{{ url_for('login') }}">
 
-            <div class="input-group">
-                <input type="email" name="email" placeholder="Email Address" required>
+            <!-- EMAIL FIELD -->
+            <div class="input-group input-neutral" id="emailGroup">
+                <input type="email" id="email" name="email" placeholder="Email Address" required>
+                <div class="validation-message" id="emailMessage"></div>
             </div>
 
-            <div class="input-group">
+            <!-- PASSWORD FIELD -->
+            <div class="input-group input-neutral" id="passwordGroup">
                 <input type="password" id="password" name="password" placeholder="Password" required>
                 <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+                <div class="validation-message" id="passwordMessage"></div>
             </div>
 
             <button type="submit" class="btn-login">
@@ -218,18 +291,71 @@ body::before {
 {% endblock %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-document.getElementById("togglePassword").addEventListener("click", function(){
-    let input = document.getElementById("password");
-    if(input.type === "password"){
-        input.type = "text";
-        this.classList.remove("fa-eye");
-        this.classList.add("fa-eye-slash");
+
+// ===== EMAIL VALIDATION =====
+$("#email").on("input", function(){
+    let val = $(this).val().trim();
+    let group = $("#emailGroup");
+    let message = $("#emailMessage");
+    
+    // Check Gmail format
+    let isValidGmail = /^[\w\.-]+@gmail\.com$/.test(val);
+    
+    if(val.length > 0){
+        message.addClass("show");
+        
+        if(isValidGmail){
+            group.removeClass("input-neutral input-invalid").addClass("input-valid");
+            message.removeClass("error").addClass("success");
+            message.html("<i class='fas fa-check'></i> Valid Gmail address");
+        } else {
+            group.removeClass("input-neutral input-valid").addClass("input-invalid");
+            message.removeClass("success").addClass("error");
+            message.html("<i class='fas fa-times'></i> Please enter a valid Gmail address");
+        }
     } else {
-        input.type = "password";
-        this.classList.remove("fa-eye-slash");
-        this.classList.add("fa-eye");
+        message.removeClass("show");
+        group.removeClass("input-valid input-invalid").addClass("input-neutral");
     }
 });
+
+// ===== PASSWORD VALIDATION =====
+$("#password").on("input", function(){
+    let val = $(this).val();
+    let group = $("#passwordGroup");
+    let message = $("#passwordMessage");
+    
+    if(val.length > 0){
+        message.addClass("show");
+        
+        if(val.length >= 6){
+            group.removeClass("input-neutral input-invalid").addClass("input-valid");
+            message.removeClass("error").addClass("success");
+            message.html("<i class='fas fa-check'></i> Password entered");
+        } else {
+            group.removeClass("input-neutral input-valid").addClass("input-invalid");
+            message.removeClass("success").addClass("error");
+            message.html("<i class='fas fa-times'></i> Password must be at least 6 characters");
+        }
+    } else {
+        message.removeClass("show");
+        group.removeClass("input-valid input-invalid").addClass("input-neutral");
+    }
+});
+
+// ===== PASSWORD TOGGLE =====
+$("#togglePassword").click(function(){
+    let input = $("#password");
+    if(input.attr("type") === "password"){
+        input.attr("type", "text");
+        $(this).removeClass("fa-eye").addClass("fa-eye-slash");
+    } else {
+        input.attr("type", "password");
+        $(this).removeClass("fa-eye-slash").addClass("fa-eye");
+    }
+});
+
 </script>
 {% endblock %}

@@ -113,7 +113,7 @@ max-width:500px;
 
 /* UPLOAD BOX */
 
-.upload-box{
+.upload-container{
 background:var(--bg-card);
 border:2px dashed rgba(255,255,255,0.25);
 padding:60px;
@@ -122,36 +122,48 @@ cursor:pointer;
 transition:.3s;
 backdrop-filter:blur(10px);
 width:350px;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+min-height:300px;
+position:relative;
 }
 
-.upload-box:hover{
+.upload-container:hover{
 border-color:var(--primary);
 transform:scale(1.02);
 }
 
-.upload-box i{
+.upload-icon{
 font-size:3rem;
 color:var(--primary);
 margin-bottom:15px;
 }
 
-.upload-box p{
+.upload-text p{
 color:var(--text-muted);
 font-size:1rem;
 }
 
-/* PREVIEW */
-
-.preview{
-margin-top:40px;
-display:none;
+.preview-content{
+text-align:center;
+width:100%;
 }
 
-.preview img{
-max-width:300px;
+.preview-content img{
+max-width:280px;
 border-radius:15px;
 margin-bottom:20px;
 box-shadow:0 10px 30px rgba(0,0,0,0.5);
+}
+
+.hidden{
+display:none !important;
+}
+
+.preview-hidden{
+display:none;
 }
 
 /* BUTTONS */
@@ -163,6 +175,7 @@ border-radius:8px;
 font-weight:700;
 cursor:pointer;
 margin:10px;
+transition:.3s;
 }
 
 .btn-scan{
@@ -170,9 +183,123 @@ background:var(--primary);
 color:#000;
 }
 
+.btn-scan:hover{
+background:#00dd77;
+transform:scale(1.05);
+}
+
+.btn-scan:disabled{
+background:#666;
+cursor:not-allowed;
+}
+
 .btn-remove{
 background:#ff4d4d;
 color:#fff;
+}
+
+.btn-remove:hover{
+background:#ff3333;
+}
+
+.btn-dashboard{
+background:#0066ff;
+color:#fff;
+margin-top:20px;
+}
+
+.btn-dashboard:hover{
+background:#0052cc;
+}
+
+/* RESULTS */
+
+.results{
+background:var(--bg-card);
+border:2px solid var(--primary);
+padding:40px;
+border-radius:15px;
+margin-top:40px;
+max-width:500px;
+backdrop-filter:blur(10px);
+display:none;
+}
+
+.results.show{
+display:block;
+animation:slideIn .5s ease-out;
+}
+
+@keyframes slideIn{
+from{
+opacity:0;
+transform:translateY(20px);
+}
+to{
+opacity:1;
+transform:translateY(0);
+}
+}
+
+.result-item{
+margin:20px 0;
+text-align:left;
+}
+
+.result-label{
+color:var(--text-muted);
+font-size:0.9rem;
+margin-bottom:5px;
+}
+
+.result-value{
+font-size:1.3rem;
+color:var(--primary);
+font-weight:700;
+}
+
+.confidence-bar{
+width:100%;
+height:8px;
+background:rgba(255,255,255,0.1);
+border-radius:10px;
+margin-top:5px;
+overflow:hidden;
+}
+
+.confidence-fill{
+height:100%;
+background:linear-gradient(90deg, #00ff88, #00dd77);
+border-radius:10px;
+}
+
+.loading{
+display:none;
+text-align:center;
+}
+
+.spinner{
+border:4px solid rgba(0,255,136,0.2);
+border-top:4px solid var(--primary);
+border-radius:50%;
+width:40px;
+height:40px;
+animation:spin 1s linear infinite;
+margin:20px auto;
+}
+
+@keyframes spin{
+0%{transform:rotate(0deg);}
+100%{transform:rotate(360deg);}
+}
+
+.error{
+background:#ff4d4d;
+color:#fff;
+padding:15px;
+border-radius:8px;
+margin-top:20px;
+display:none;
 }
 
 /* FOOTER */
@@ -192,12 +319,13 @@ border-top:1px solid rgba(255,255,255,0.05);
 font-size:2rem;
 }
 
-.upload-box{
+.upload-container{
 width:90%;
 padding:40px;
+min-height:250px;
 }
 
-.preview img{
+.preview-content img{
 max-width:220px;
 }
 
@@ -212,38 +340,67 @@ max-width:220px;
 <div class="logo">Agri<span>Scan</span></div>
 
 <div>
-<a href="/">Home</a>
+<a href="/dashboard">📊 Dashboard</a>
 <a href="/about">About</a>
+<a href="/logout" style="color:#ff4d4d;">Logout</a>
 </div>
 </nav>
 
 <div class="container">
 
-<h1>Upload Crop Image</h1>
+<h1>🌾 Scan Crop Disease</h1>
 
 <p>Upload a clear photo of the crop leaf and let our AI detect possible diseases instantly.</p>
 
-<label class="upload-box">
+<!-- UNIFIED UPLOAD/PREVIEW BLOCK -->
+<div class="upload-container" id="uploadBox">
 
 <input type="file" id="fileInput" hidden accept="image/*">
 
-<i class="fas fa-cloud-upload-alt"></i>
-
+<!-- UPLOAD STATE -->
+<div class="upload-text" id="uploadText">
+<i class="fas fa-cloud-upload-alt upload-icon"></i>
 <p>Click to Upload Image</p>
+</div>
 
-</label>
-
-<div class="preview" id="preview">
-
-<img id="previewImg">
-
+<!-- PREVIEW STATE -->
+<div class="preview-content preview-hidden" id="previewContent">
+<img id="previewImg" alt="Preview">
 <br>
-
-<button class="btn btn-scan">Scan Crop</button>
-
+<button class="btn btn-scan" id="scanBtn" onclick="scanImage()">Scan Crop</button>
 <button class="btn btn-remove" onclick="removeImage()">Remove</button>
+</div>
 
 </div>
+
+<!-- LOADING STATE -->
+<div class="loading" id="loading">
+<div class="spinner"></div>
+<p>Analyzing image...</p>
+</div>
+
+<!-- RESULTS -->
+<div class="results" id="results">
+<div class="result-item">
+<div class="result-label">🌱 Detected Disease</div>
+<div class="result-value" id="diseaseResult">-</div>
+</div>
+
+<div class="result-item">
+<div class="result-label">📊 Confidence Level</div>
+<div class="confidence-bar">
+<div class="confidence-fill" id="confidenceFill" style="width:0%"></div>
+</div>
+<div class="result-value" id="confidenceResult">0%</div>
+</div>
+
+<button class="btn btn-scan" onclick="document.getElementById('preview').style.display='none'; document.getElementById('results').classList.remove('show'); document.getElementById('fileInput').value='';">Scan Another</button>
+
+<button class="btn btn-dashboard" onclick="window.location.href='/dashboard'">View History</button>
+</div>
+
+<!-- ERROR MESSAGE -->
+<div class="error" id="error"></div>
 
 </div>
 
@@ -255,37 +412,133 @@ max-width:220px;
 
 <script>
 
-const fileInput=document.getElementById("fileInput")
-const preview=document.getElementById("preview")
-const previewImg=document.getElementById("previewImg")
+const fileInput = document.getElementById("fileInput");
+const previewContent = document.getElementById("previewContent");
+const uploadText = document.getElementById("uploadText");
+const previewImg = document.getElementById("previewImg");
+const results = document.getElementById("results");
+const errorDiv = document.getElementById("error");
+const loading = document.getElementById("loading");
+const uploadBox = document.getElementById("uploadBox");
 
-fileInput.addEventListener("change",function(){
+// Handle file selection
+fileInput.addEventListener("change", function(){
+    const file = this.files[0];
+    
+    if(file){
+        // Validate file type
+        if(!file.type.startsWith('image/')){
+            showError("Please upload a valid image file");
+            return;
+        }
+        
+        // Validate file size (max 16MB)
+        if(file.size > 16 * 1024 * 1024){
+            showError("Image size must be less than 16MB");
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = function(e){
+            previewImg.src = e.target.result;
+            uploadText.classList.add("preview-hidden");
+            previewContent.classList.remove("preview-hidden");
+            results.classList.remove("show");
+            errorDiv.style.display = "none";
+        };
+        
+        reader.readAsDataURL(file);
+    }
+});
 
-const file=this.files[0]
-
-if(file){
-
-const reader=new FileReader()
-
-reader.onload=function(e){
-
-previewImg.src=e.target.result
-preview.style.display="block"
-
+// Scan image and get prediction
+async function scanImage(){
+    const file = fileInput.files[0];
+    
+    if(!file){
+        showError("Please select an image first");
+        return;
+    }
+    
+    // Show loading state
+    loading.style.display = "block";
+    previewContent.style.display = "none";
+    results.classList.remove("show");
+    errorDiv.style.display = "none";
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try{
+        const response = await fetch('/predict', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if(response.ok){
+            // Display results
+            displayResults(data.disease, data.confidence);
+        } else {
+            showError(data.error || "Failed to analyze image");
+        }
+    } catch(error){
+        showError("Network error: " + error.message);
+    } finally {
+        loading.style.display = "none";
+        previewContent.style.display = "block";
+    }
 }
 
-reader.readAsDataURL(file)
-
+// Display prediction results
+function displayResults(disease, confidence){
+    document.getElementById("diseaseResult").textContent = disease;
+    document.getElementById("confidenceResult").textContent = confidence + "%";
+    document.getElementById("confidenceFill").style.width = confidence + "%";
+    
+    results.classList.add("show");
 }
 
-})
+// Show error message
+function showError(message){
+    errorDiv.textContent = "❌ " + message;
+    errorDiv.style.display = "block";
+}
 
+// Remove image
 function removeImage(){
-
-fileInput.value=""
-preview.style.display="none"
-
+    fileInput.value = "";
+    uploadText.classList.remove("preview-hidden");
+    previewContent.classList.add("preview-hidden");
+    results.classList.remove("show");
+    errorDiv.style.display = "none";
 }
+
+// Allow drag and drop
+uploadBox.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    uploadBox.style.borderColor = "var(--primary)";
+});
+
+uploadBox.addEventListener("dragleave", () => {
+    uploadBox.style.borderColor = "rgba(255,255,255,0.25)";
+});
+
+uploadBox.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadBox.style.borderColor = "rgba(255,255,255,0.25)";
+    fileInput.files = e.dataTransfer.files;
+    fileInput.dispatchEvent(new Event("change"));
+});
+
+// Click to upload
+uploadBox.addEventListener("click", (e) => {
+    if(e.target !== fileInput && previewContent.classList.contains("preview-hidden")){
+        fileInput.click();
+    }
+});
 
 </script>
 
