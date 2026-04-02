@@ -258,18 +258,18 @@ body::before {
 
         <form method="POST" action="{{ url_for('login') }}">
 
-            <!-- EMAIL FIELD -->
-            <div class="input-group input-neutral" id="emailGroup">
-                <input type="email" id="email" name="email" placeholder="Email Address" required>
-                <div class="validation-message" id="emailMessage"></div>
-            </div>
+        <!-- EMAIL FIELD -->
+<div class="input-group input-neutral" id="emailGroup">
+    <input type="email" id="email" name="email" placeholder="Email Address" autocomplete="off" required>
+    <div class="validation-message" id="emailMessage"></div>
+</div>
 
-            <!-- PASSWORD FIELD -->
-            <div class="input-group input-neutral" id="passwordGroup">
-                <input type="password" id="password" name="password" placeholder="Password" required>
-                <i class="fas fa-eye password-toggle" id="togglePassword"></i>
-                <div class="validation-message" id="passwordMessage"></div>
-            </div>
+<!-- PASSWORD FIELD -->
+<div class="input-group input-neutral" id="passwordGroup">
+    <input type="password" id="password" name="password" placeholder="Password" autocomplete="new-password" required>
+    <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+    <div class="validation-message" id="passwordMessage"></div>
+</div>
 
             <button type="submit" class="btn-login">
                 <i class="fas fa-sign-in-alt"></i> Login

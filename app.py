@@ -10,7 +10,8 @@ from torchvision import models, transforms
 from PIL import Image
 import io
 from datetime import datetime
-
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_login import current_user
 
 app = Flask(__name__)
 app.secret_key = 'secretkey'
@@ -265,20 +266,20 @@ def logout():
 # -------- ABOUT --------
 @app.route('/about')
 def about():
-    return render_template('about.html')
+    return render_template('about.html',current_user =current_user )
 
 
 # -------- INDEX --------
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', current_user=current_user)
 
 @app.route('/upload')
 def upload():
     if 'user_id' not in session:
         flash('Please log in first', 'error')
         return redirect(url_for('login'))
-    return render_template('upload.html')
+    return render_template('upload.html',current_user =current_user)
 
 
 # -------- PREDICT --------
@@ -365,7 +366,7 @@ def dashboard():
                         predictions=predictions,
                         total_predictions=total_predictions,
                         disease_counts=disease_counts,
-                        crop_counts=crop_counts)
+                        crop_counts=crop_counts,current_user =current_user)
 
 
 if __name__ == "__main__":
