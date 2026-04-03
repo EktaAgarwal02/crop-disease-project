@@ -11,139 +11,120 @@ from PIL import Image
 import io
 from datetime import datetime
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from flask_login import current_user
 
 app = Flask(__name__)
 app.secret_key = 'secretkey'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-# File upload configuration
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
-UPLOAD_FOLDER = 'static/uploads'
+# Ensure upload folder exists before handling requests
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
-app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
+# Database and login manager setup
 db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
-
-# ---------------- USER MODEL ----------------
-class User(db.Model):
+# User / Prediction models
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    email = db.Column(db.String(100), unique=True)
-    password = db.Column(db.String(200))
+    name = db.Column(db.String(150), nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
     predictions = db.relationship('Prediction', backref='user', lazy=True)
 
-
-# ---------- PREDICTION MODEL ----------
 class Prediction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    disease_name = db.Column(db.String(100))
-    confidence = db.Column(db.Float)
-    image_filename = db.Column(db.String(200))
+    disease_name = db.Column(db.String(200), nullable=False)
+    confidence = db.Column(db.Float, nullable=False)
+    image_filename = db.Column(db.String(300), nullable=False)
+    crop_type = db.Column(db.String(100), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    crop_type = db.Column(db.String(50))
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Load class names from the training dataset structure
+def get_class_names():
+    dataset_path = os.path.join(os.path.dirname(__file__), 'PlantVillage')
+    if os.path.isdir(dataset_path):
+        classes = sorted([
+            d for d in os.listdir(dataset_path)
+            if os.path.isdir(os.path.join(dataset_path, d))
+        ])
+        if classes:
+            return classes
+    return [
+        'Pepper__bell___Bacterial_spot',
+        'Pepper__bell___healthy',
+        'PlantVillage',
+        'Potato___Early_blight',
+        'Potato___Late_blight',
+        'Potato___healthy',
+        'Tomato_Bacterial_spot',
+        'Tomato_Early_blight',
+        'Tomato_Late_blight',
+        'Tomato_Leaf_Mold',
+        'Tomato_Septoria_leaf_spot',
+        'Tomato_Spider_mites_Two_spotted_spider_mite',
+        'Tomato__Target_Spot',
+        'Tomato__Tomato_YellowLeaf__Curl_Virus',
+        'Tomato__Tomato_mosaic_virus',
+        'Tomato_healthy',
+    ]
+
+CLASS_NAMES = get_class_names()
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# Load the saved model
+def load_disease_model():
+    model_path = os.path.join(os.path.dirname(__file__), 'crop_disease_model.pth')
+    model = models.mobilenet_v3_large(weights=None, num_classes=len(CLASS_NAMES))
+    if os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path, map_location=DEVICE))
+    else:
+        raise FileNotFoundError(f"Model file not found at {model_path}")
+    model.to(DEVICE)
+    model.eval()
+    return model
 
 with app.app_context():
     db.create_all()
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+MODEL = load_disease_model()
+
+# Prediction helpers
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# ============= MODEL INITIALIZATION =============
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = None
-class_names = None
-model_path = 'crop_disease_model.pth'
-
-# Class names from PlantVillage dataset
-CLASS_MAPPING = {
-    'Pepper__bell___Bacterial_spot': 'Pepper - Bacterial Spot',
-    'Pepper__bell___healthy': 'Pepper - Healthy',
-    'Potato___Early_blight': 'Potato - Early Blight',
-    'Potato___healthy': 'Potato - Healthy',
-    'Potato___Late_blight': 'Potato - Late Blight',
-    'Tomato__Target_Spot': 'Tomato - Target Spot',
-    'Tomato__Tomato_mosaic_virus': 'Tomato - Mosaic Virus',
-    'Tomato__Tomato_YellowLeaf__Curl_Virus': 'Tomato - Yellow Leaf Curl Virus',
-    'Tomato_Bacterial_spot': 'Tomato - Bacterial Spot',
-    'Tomato_Early_blight': 'Tomato - Early Blight',
-    'Tomato_healthy': 'Tomato - Healthy',
-    'Tomato_Late_blight': 'Tomato - Late Blight',
-    'Tomato_Leaf_Mold': 'Tomato - Leaf Mold',
-    'Tomato_Septoria_leaf_spot': 'Tomato - Septoria Leaf Spot',
-    'Tomato_Spider_mites_Two_spotted_spider_mite': 'Tomato - Spider Mites'
-}
-
-def load_model():
-    """Load the trained model"""
-    global model, class_names
-    num_classes = len(CLASS_MAPPING)
-    
-    # Initialize model architecture
-    model = models.mobilenet_v3_large(weights='DEFAULT')
-    num_ftrs = model.classifier[3].in_features
-    model.classifier[3] = nn.Linear(num_ftrs, num_classes)
-    model = model.to(device)
-    
-    # Load weights if available
-    if os.path.exists(model_path):
-        try:
-            model.load_state_dict(torch.load(model_path, map_location=device))
-            print(f"Model loaded from {model_path}")
-        except Exception as e:
-            print(f"Error loading model: {e}. Using pretrained weights only.")
-    else:
-        print(f"Model file {model_path} not found. Using pretrained MobileNet V3.")
-    
-    model.eval()
-    class_names = list(CLASS_MAPPING.values())
-    return class_names
-
-# Load model on startup
-with app.app_context():
-    class_names = load_model()
+def format_label(label):
+    return re.sub(r'_+', ' ', label).strip()
 
 
 def preprocess_image(image_file):
-    """Preprocess image for model prediction"""
-    transform = transforms.Compose([
+    image = Image.open(image_file).convert('RGB')
+    preprocess = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize([0.5]*3, [0.5]*3)
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
     ])
-    
-    try:
-        img = Image.open(io.BytesIO(image_file.read())).convert('RGB')
-        img_tensor = transform(img).unsqueeze(0)
-        return img_tensor.to(device)
-    except Exception as e:
-        raise ValueError(f"Error processing image: {str(e)}")
+    return preprocess(image).unsqueeze(0).to(DEVICE)
 
 
 def predict_disease(image_tensor):
-    """Make prediction on image"""
     with torch.no_grad():
-        outputs = model(image_tensor)
-        probabilities = torch.nn.functional.softmax(outputs, dim=1)
-        confidence, predicted_class = torch.max(probabilities, 1)
-    
-    class_name = class_names[predicted_class.item()]
-    confidence_score = confidence.item() * 100
-    
-    return class_name, confidence_score
-
-
-def allowed_file(filename):
-    """Check if file is allowed"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+        outputs = MODEL(image_tensor)
+        probabilities = torch.softmax(outputs, dim=1)
+        confidence, idx = torch.max(probabilities, dim=1)
+        label = CLASS_NAMES[idx.item()]
+        return format_label(label), float(confidence.item() * 100)
 
 
 # -------- PASSWORD VALIDATION FUNCTION --------
@@ -237,12 +218,11 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if user and check_password_hash(user.password,password):
-
+            login_user(user)
             session['user_id'] = user.id
             session['user_name'] = user.name
 
             flash("Login successful","success")
-
             return redirect(url_for('index'))
 
         else:
@@ -256,7 +236,7 @@ def login():
 # -------- LOGOUT --------
 @app.route('/logout')
 def logout():
-
+    logout_user()
     session.clear()
     flash("Logged out successfully","success")
 

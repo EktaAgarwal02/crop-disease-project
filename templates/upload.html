@@ -394,7 +394,7 @@ max-width:220px;
 <div class="result-value" id="confidenceResult">0%</div>
 </div>
 
-<button class="btn btn-scan" onclick="document.getElementById('preview').style.display='none'; document.getElementById('results').classList.remove('show'); document.getElementById('fileInput').value='';">Scan Another</button>
+<button class="btn btn-scan" onclick="removeImage(); document.getElementById('results').classList.remove('show');">Scan Another</button>
 
 <button class="btn btn-dashboard" onclick="window.location.href='/dashboard'">View History</button>
 </div>
@@ -455,17 +455,19 @@ fileInput.addEventListener("change", function(){
 // Scan image and get prediction
 async function scanImage(){
     const file = fileInput.files[0];
+    const scanBtn = document.getElementById("scanBtn");
     
     if(!file){
         showError("Please select an image first");
         return;
     }
     
-    // Show loading state
+    // Show loading state and disable button
     loading.style.display = "block";
     previewContent.style.display = "none";
     results.classList.remove("show");
     errorDiv.style.display = "none";
+    scanBtn.disabled = true;
     
     const formData = new FormData();
     formData.append('image', file);
@@ -489,6 +491,7 @@ async function scanImage(){
     } finally {
         loading.style.display = "none";
         previewContent.style.display = "block";
+        scanBtn.disabled = false;
     }
 }
 
